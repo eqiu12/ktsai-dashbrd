@@ -83,31 +83,17 @@ export default function FinModelPage() {
     const result: MonthRow[] = [];
     for (let i = 0; i < MONTHS.length; i += 1) {
       const key = MONTHS[i]!.key;
-
       const conversion = conversionOverrides[key] ?? TARGET_CONVERSION;
       const cpa = CPA_START_RUB * Math.pow(1 + CPA_MONTHLY_GROWTH, i);
 
-      const prior = result[i - 1];
-      const priorNewPaid = prior?.newPaidUsers ?? 0;
-      const priorNewOrganic = prior?.newOrganic ?? 0;
+      const prev = result[i - 1];
+      const prevEndUsers = prev?.endUsers ?? 0;
+      const prevNewPaid = prev?.newPaidUsers ?? 0;
+      const prevNewOrganic = prev?.newOrganic ?? 0;
 
-      const endUsers = i === 0 ? seedEndUsers : Math.max(0, Math.round((result[i - 1]?.endUsers ?? 0) + (result[i]?.newPaidUsers ?? 0) + (result[i]?.newOrganic ?? 0)));
-      // The line above references current row values that are not computed yet. We'll compute in two passes.
-      // Instead, compute sequentially based on definitions:
-    }
-    // Two-pass compute to honor forward references
-    for (let i = 0; i < MONTHS.length; i += 1) {
-      const key = MONTHS[i]!.key;
-      const conversion = conversionOverrides[key] ?? TARGET_CONVERSION;
-      const cpa = CPA_START_RUB * Math.pow(1 + CPA_MONTHLY_GROWTH, i);
-
-      const prior = rows[i - 1];
-      const priorNewPaid = prior?.newPaidUsers ?? 0;
-      const priorNewOrganic = prior?.newOrganic ?? 0;
-
-      const endUsers = i === 0 ? seedEndUsers : Math.round((rows[i - 1]?.endUsers ?? 0) + (rows[i - 1]?.newPaidUsers ?? 0) + (rows[i - 1]?.newOrganic ?? 0));
+      const endUsers = i === 0 ? seedEndUsers : Math.round(prevEndUsers + prevNewPaid + prevNewOrganic);
       const retention2 = Math.round(endUsers * RETENTION);
-      const mau = i === 0 ? seedMAU : Math.round(retention2 + priorNewPaid + priorNewOrganic);
+      const mau = i === 0 ? seedMAU : Math.round(retention2 + prevNewPaid + prevNewOrganic);
 
       const defaultBookings = Math.round(mau * conversion);
       const bookings = bookingsOverrides[key] ?? defaultBookings;
@@ -120,7 +106,7 @@ export default function FinModelPage() {
       const newPaidUsers = Math.max(0, Math.floor(marketingSpend / cpa));
       const newOrganic = Math.max(0, Math.round(organicOverrides[key] ?? 0));
 
-      rows[i] = {
+      result[i] = {
         endUsers,
         retention2,
         mau,
@@ -136,7 +122,7 @@ export default function FinModelPage() {
         newOrganic,
       } as MonthRow;
     }
-    return rows;
+    return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedEndUsers, seedMAU, conversionOverrides, bookingsOverrides, organicOverrides]);
 
