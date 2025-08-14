@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model BalanceSnapshot {
+  id        Int      @id @default(autoincrement())
+  capturedAt DateTime @default(now())
+  usd       Decimal
+  eur       Decimal
+  rub       Decimal
+
+  @@index([capturedAt])
+}
+
+model NextPayoutSnapshot {
+  id        Int      @id @default(autoincrement())
+  capturedAt DateTime @default(now())
+  usd       Decimal
+  eur       Decimal
+  rub       Decimal
+
+  @@index([capturedAt])
+}
+
+// Actions affecting the balance (e.g., bookings)
+model TravelpayoutsAction {
+  id               Int      @id @default(autoincrement())
+  actionId         String   @unique
+  campaignId       Int
+  actionState      String
+  currency         String?
+  price            Decimal
+  profit           Decimal
+  description      String?
+  bookedAt         DateTime?
+  updatedAtRemote  DateTime?
+  capturedAt       DateTime @default(now())
+
+  @@index([actionState])
+  @@index([capturedAt])
+}
+
+// Aggregated daily stats for board view
+model DailyStatistic {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @unique
+  clicks     Int      @default(0)
+  bookings   Int      @default(0)
+  earnings   Decimal
+}
