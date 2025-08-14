@@ -1,8 +1,8 @@
 "use client";
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginInner() {
   const [codephrase, setCodephrase] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,6 +53,14 @@ export default function LoginPage() {
         {error && <p style={{ color: "#b00020" }}>{error}</p>}
       </form>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
+      <LoginInner />
+    </Suspense>
   );
 }
 
