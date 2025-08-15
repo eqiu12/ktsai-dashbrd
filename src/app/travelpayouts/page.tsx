@@ -33,7 +33,7 @@ export default function TravelpayoutsDashboardPage() {
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     return `${parts.join(".")} ₽`;
   };
-  const [pageSize, setPageSize] = useState<10 | 50 | 100>(100);
+  const [pageSize, setPageSize] = useState<10 | 50 | 100>(10);
   const [page, setPage] = useState(0);
   const { data, isLoading, error } = useSWR<DashboardResponse>(`/api/travelpayouts/dashboard?limit=${pageSize}&offset=${page * pageSize}`, fetcher, {
     refreshInterval: 60_000,

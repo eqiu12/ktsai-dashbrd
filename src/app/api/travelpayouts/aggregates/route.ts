@@ -25,8 +25,20 @@ export async function GET(req: Request) {
           SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) +
           SUM(CASE WHEN lower(action_state) = 'processing' THEN CAST(COALESCE(processing_profit_rub, profit_rub) AS REAL) ELSE 0 END)
         ) AS total_profit_rub,
-        CASE WHEN SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) > 0 
-          THEN (SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) * 1.0) / SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END)
+        CASE WHEN (
+            SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN lower(action_state) = 'processing' THEN 1 ELSE 0 END)
+          ) > 0
+          THEN (
+            (
+              SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) +
+              SUM(CASE WHEN lower(action_state) = 'processing' THEN CAST(COALESCE(processing_profit_rub, profit_rub) AS REAL) ELSE 0 END)
+            ) * 1.0
+          ) /
+          (
+            SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN lower(action_state) = 'processing' THEN 1 ELSE 0 END)
+          )
           ELSE 0 END AS avg_profit_per_booking_rub
       FROM travelpayouts_actions
       WHERE account_id = ?
@@ -48,8 +60,20 @@ export async function GET(req: Request) {
           SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) +
           SUM(CASE WHEN lower(action_state) = 'processing' THEN CAST(COALESCE(processing_profit_rub, profit_rub) AS REAL) ELSE 0 END)
         ) AS total_profit_rub,
-        CASE WHEN SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) > 0 
-          THEN (SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) * 1.0) / SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END)
+        CASE WHEN (
+            SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN lower(action_state) = 'processing' THEN 1 ELSE 0 END)
+          ) > 0
+          THEN (
+            (
+              SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) +
+              SUM(CASE WHEN lower(action_state) = 'processing' THEN CAST(COALESCE(processing_profit_rub, profit_rub) AS REAL) ELSE 0 END)
+            ) * 1.0
+          ) /
+          (
+            SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN lower(action_state) = 'processing' THEN 1 ELSE 0 END)
+          )
           ELSE 0 END AS avg_profit_per_booking_rub
       FROM travelpayouts_actions
       WHERE account_id = ?
@@ -72,8 +96,20 @@ export async function GET(req: Request) {
           SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) +
           SUM(CASE WHEN lower(action_state) = 'processing' THEN CAST(COALESCE(processing_profit_rub, profit_rub) AS REAL) ELSE 0 END)
         ) AS total_profit_rub,
-        CASE WHEN SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) > 0 
-          THEN (SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) * 1.0) / SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END)
+        CASE WHEN (
+            SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN lower(action_state) = 'processing' THEN 1 ELSE 0 END)
+          ) > 0
+          THEN (
+            (
+              SUM(CASE WHEN lower(action_state) = 'paid' THEN CAST(COALESCE(paid_profit_rub, profit_rub) AS REAL) ELSE 0 END) +
+              SUM(CASE WHEN lower(action_state) = 'processing' THEN CAST(COALESCE(processing_profit_rub, profit_rub) AS REAL) ELSE 0 END)
+            ) * 1.0
+          ) /
+          (
+            SUM(CASE WHEN lower(action_state) = 'paid' THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN lower(action_state) = 'processing' THEN 1 ELSE 0 END)
+          )
           ELSE 0 END AS avg_profit_per_booking_rub
       FROM travelpayouts_actions
       WHERE account_id = ?
