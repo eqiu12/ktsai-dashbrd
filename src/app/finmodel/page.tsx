@@ -154,18 +154,18 @@ export default function FinModelPage() {
 
       const revenueBookings = bookings * commissionRub;
       const paidSubsDefault = Math.round(mauProvisional * (paidSubsPct / 100));
-      const paidSubsCount = Math.round(paidSubsOverrides[key] ?? paidSubsDefault);
+      const paidSubsCount = key === "2025-07" ? 0 : Math.round(paidSubsOverrides[key] ?? paidSubsDefault);
       const revenueSubs = paidSubsCount * subsRevenueRub;
       const totalRevenue = revenueBookings + revenueSubs;
       const marketingDefault = Math.round(totalRevenue * MARKETING_SHARE_TABLE);
-      const marketingSpend = Math.round(marketingOverrides[key] ?? marketingDefault);
+      const marketingSpend = key === "2025-07" ? 18000 : Math.round(marketingOverrides[key] ?? marketingDefault);
       const newPaidUsers = Math.round(newPaidOverrides[key] ?? Math.max(0, Math.floor(marketingSpend / cpa)));
       // For July (i === 0), if overrides present, derive CPA from marketing / new paid users
       if (i === 0 && newPaidUsers > 0) {
         cpa = marketingSpend / newPaidUsers;
       }
       const newOrganicBase = key === "2025-07" ? 5538 : defaultNewOrganic;
-      const newOrganic = Math.max(0, Math.round(organicOverrides[key] ?? newOrganicBase));
+      const newOrganic = key === "2025-07" ? 5538 : Math.max(0, Math.round(organicOverrides[key] ?? newOrganicBase));
 
       // Final end users per spec: prev month endUsers + current new paid + current new organic
       const endUsers = i === 0 ? 31719 : Math.round(prevEndUsers + newPaidUsers + newOrganic);
@@ -290,26 +290,14 @@ export default function FinModelPage() {
             <tr>
               <Td><strong>Ретеншн 2</strong></Td>
               {MONTHS.map((m, i) => (
-                <Td key={m.key}>
-                  {i === 0 ? (
-                    <NumberCell value={rows[i]!.retention2} onChange={(v) => setSeedRetention2(Math.max(0, Math.round(v)))} />
-                  ) : (
-                    formatNumber(rows[i]!.retention2)
-                  )}
-                </Td>
+                <Td key={m.key}>{formatNumber(rows[i]!.retention2)}</Td>
               ))}
             </tr>
             {/* MAU */}
             <tr>
               <Td><strong>MAU</strong></Td>
               {MONTHS.map((m, i) => (
-                <Td key={m.key}>
-                  {i === 0 ? (
-                    <NumberCell value={rows[i]!.mau} onChange={(v) => setSeedMAU(Math.max(0, Math.round(v)))} />
-                  ) : (
-                    formatNumber(rows[i]!.mau)
-                  )}
-                </Td>
+                <Td key={m.key}>{formatNumber(rows[i]!.mau)}</Td>
               ))}
             </tr>
             {/* Конверсия */}
@@ -377,11 +365,15 @@ export default function FinModelPage() {
                 const r = rows[i]!;
                 return (
                   <Td key={m.key}>
-                    <NumberCell
-                      value={paidSubsOverrides[key] ?? r.paidSubsCount}
-                      onChange={(v) => setPaidSubsOverrides((s) => ({ ...s, [key]: Math.max(0, Math.round(v)) }))}
-                      step={1}
-                    />
+                    {key === "2025-07" ? (
+                      formatNumber(r.paidSubsCount)
+                    ) : (
+                      <NumberCell
+                        value={paidSubsOverrides[key] ?? r.paidSubsCount}
+                        onChange={(v) => setPaidSubsOverrides((s) => ({ ...s, [key]: Math.max(0, Math.round(v)) }))}
+                        step={1}
+                      />
+                    )}
                   </Td>
                 );
               })}
@@ -415,11 +407,15 @@ export default function FinModelPage() {
                 const r = rows[i]!;
                 return (
                   <Td key={m.key}>
-                    <NumberCell
-                      value={marketingOverrides[key] ?? r.marketingSpend}
-                      onChange={(v) => setMarketingOverrides((s) => ({ ...s, [key]: Math.max(0, Math.round(v)) }))}
-                      step={100}
-                    />
+                    {key === "2025-07" ? (
+                      formatCurrency(r.marketingSpend)
+                    ) : (
+                      <NumberCell
+                        value={marketingOverrides[key] ?? r.marketingSpend}
+                        onChange={(v) => setMarketingOverrides((s) => ({ ...s, [key]: Math.max(0, Math.round(v)) }))}
+                        step={100}
+                      />
+                    )}
                   </Td>
                 );
               })}
@@ -439,10 +435,14 @@ export default function FinModelPage() {
                 const r = rows[i]!;
                 return (
                   <Td key={m.key}>
-                    <NumberCell
-                      value={organicOverrides[key] ?? r.newOrganic}
-                      onChange={(v) => setOrganicOverrides((s) => ({ ...s, [key]: Math.max(0, Math.round(v)) }))}
-                    />
+                    {key === "2025-07" ? (
+                      formatNumber(r.newOrganic)
+                    ) : (
+                      <NumberCell
+                        value={organicOverrides[key] ?? r.newOrganic}
+                        onChange={(v) => setOrganicOverrides((s) => ({ ...s, [key]: Math.max(0, Math.round(v)) }))}
+                      />
+                    )}
                   </Td>
                 );
               })}
@@ -515,13 +515,22 @@ function TopRow({ label, children, bg, readonly = false }: { label: string; chil
 }
 
 function InlineCurrency({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState<string>(String(value));
+  useEffect(() => { setText(String(value)); }, [value]);
   return (
     <span>
       <input
-        type="number"
-        value={Number.isFinite(value) ? value.toFixed(2) : "0.00"}
-        onChange={(e) => onChange(parseFloat(e.target.value || "0"))}
-        style={{ width: 90, padding: 4, border: "1px solid #e5e7eb", borderRadius: 4, background: "#fff", textAlign: "right", fontSize: 12, height: 24 }}
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => {
+          const normalized = text.replace(",", ".");
+          const v = parseFloat(normalized);
+          if (!Number.isNaN(v)) onChange(v);
+          else setText(String(value));
+        }}
+        style={{ width: 110, padding: 4, border: "1px solid #e5e7eb", borderRadius: 4, background: "#fff", textAlign: "right", fontSize: 12, height: 24 }}
       />
       <span style={{ marginLeft: 6 }}>₽</span>
     </span>
@@ -529,14 +538,22 @@ function InlineCurrency({ value, onChange }: { value: number; onChange: (v: numb
 }
 
 function InlinePercent({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState<string>(String(value));
+  useEffect(() => { setText(String(value)); }, [value]);
   return (
     <span>
       <input
-        type="number"
-        value={Number.isFinite(value) ? value.toFixed(2) : "0.00"}
-        onChange={(e) => onChange(parseFloat(e.target.value || "0"))}
-        style={{ width: 70, padding: 4, border: "1px solid #e5e7eb", borderRadius: 4, background: "#fff", textAlign: "right", fontSize: 12, height: 24 }}
-        step={0.1}
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => {
+          const normalized = text.replace(",", ".");
+          const v = parseFloat(normalized);
+          if (!Number.isNaN(v)) onChange(v);
+          else setText(String(value));
+        }}
+        style={{ width: 90, padding: 4, border: "1px solid #e5e7eb", borderRadius: 4, background: "#fff", textAlign: "right", fontSize: 12, height: 24 }}
       />
       <span style={{ marginLeft: 6 }}>%</span>
     </span>

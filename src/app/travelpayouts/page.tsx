@@ -128,12 +128,24 @@ export default function TravelpayoutsDashboardPage() {
       }
       return out;
     };
+    const rollingSum = (arr: number[], window: number) => {
+      const out: number[] = [];
+      let sum = 0;
+      for (let i = 0; i < arr.length; i++) {
+        sum += arr[i];
+        if (i >= window) sum -= arr[i - window];
+        out.push(sum);
+      }
+      return out;
+    };
 
     return {
       dates,
       totalProfit30: rolling(totalProfit, 30),
       actions30: rolling(paidPlusProcessing, 30),
       profitPerBooking30: rolling(avgProfitPerBooking, 30),
+      totalProfit30Sum: rollingSum(totalProfit, 30),
+      actions30Sum: rollingSum(paidPlusProcessing, 30),
     };
   }, [dailyAgg]);
 
@@ -144,13 +156,14 @@ export default function TravelpayoutsDashboardPage() {
     const paid: number[] = rows.map((r: any) => Number(r.paid || 0));
     const processing: number[] = rows.map((r: any) => Number(r.processing || 0));
     const actionsPP: number[] = paid.map((v, i) => v + (processing[i] || 0));
+    const totalProfit: number[] = rows.map((r: any) => Number(r.total_profit_rub || 0));
     const mau: number[] = months.map((k: string) => mauByMonth[String(k).slice(5, 7)] ?? 0);
     const conversion: number[] = months.map((k: string, i: number) => {
       const prevMonth = String(((parseInt(k.slice(5, 7), 10) + 10) % 12) + 1).padStart(2, "0");
       const prevMau = mauByMonth[prevMonth] ?? 0;
       return prevMau > 0 ? actionsPP[i] / prevMau : 0;
     });
-    return { months, actionsPP, mau, conversion };
+    return { months, actionsPP, totalProfit, mau, conversion };
   }, [monthAgg]);
 
   const LineChart = ({ values, dates, label, isCurrency = false }: { values: number[]; dates: string[]; label: string; isCurrency?: boolean }) => {
@@ -359,6 +372,8 @@ export default function TravelpayoutsDashboardPage() {
       </div>
     );
   };
+
+  const [trendMode, setTrendMode] = useState<"days" | "months">("days");
 
   return (
     <div className="p-6 space-y-6 scroll-smooth">
@@ -569,54 +584,79 @@ export default function TravelpayoutsDashboardPage() {
 
         {/* Charts */}
         <section id="trends" className="rounded-lg border">
-          <div className="p-4 border-b font-medium">Trends (30-day rolling average, last 365 days)</div>
-          <div className="grid grid-cols-1 xl:grid-cols-3">
-            {charts && (
-              <>
-                <LineChart values={charts.totalProfit30} dates={charts.dates} label="Total Profit (₽)" isCurrency />
-                <LineChart values={charts.actions30} dates={charts.dates} label="Actions (Paid + Processing)" />
-                <LineChart values={charts.profitPerBooking30} dates={charts.dates} label="Profit per Booking (₽)" isCurrency />
-              </>
-            )}
-            {!charts && <div className="p-4 text-sm text-gray-500">Loading…</div>}
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="font-medium">Trends</div>
+            <div className="flex items-center gap-1 text-sm">
+              <button className={`px-3 py-1 border rounded-l ${trendMode === "days" ? "bg-gray-100" : "bg-white"}`} onClick={() => setTrendMode("days")}>Days</button>
+              <button className={`px-3 py-1 border rounded-r ${trendMode === "months" ? "bg-gray-100" : "bg-white"}`} onClick={() => setTrendMode("months")}>Months</button>
+            </div>
           </div>
-          {/* Monthly Conversion table and combined chart */}
-          {monthlySeries && (
-            <div className="mt-6">
-              <div className="overflow-x-auto">
-                <div className="p-4 font-medium">Conversion (Monthly)</div>
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Month</th>
-                      <th className="px-3 py-2 text-right">Paid + Processing Actions</th>
-                      <th className="px-3 py-2 text-right">Prev Month MAU</th>
-                      <th className="px-3 py-2 text-right">Conversion</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {monthlySeries.months.map((m, i) => {
-                      const prevMonth = String(((parseInt(m.slice(5, 7), 10) + 10) % 12) + 1).padStart(2, "0");
-                      const prevMau = mauByMonth[prevMonth] ?? 0;
-                      const actionsPP = monthlySeries.actionsPP[i];
-                      const conv = prevMau > 0 ? actionsPP / prevMau : 0;
-                      const formatInt = (n: number) => String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-                      return (
-                        <tr key={`conv2-${m}`} className="odd:bg-white even:bg-gray-50">
-                          <td className="px-3 py-2">{m}</td>
-                          <td className="px-3 py-2 text-right">{formatInt(actionsPP)}</td>
-                          <td className="px-3 py-2 text-right">{prevMau ? formatInt(prevMau) : "—"}</td>
-                          <td className="px-3 py-2 text-right">{prevMau ? `${(conv * 100).toFixed(2)}%` : "—"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <CombinedChart months={monthlySeries.months} actions={monthlySeries.actionsPP} mau={monthlySeries.mau} conversion={monthlySeries.conversion} />
+          {trendMode === "days" && (
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+              {charts && (
+                <>
+                  <LineChart values={charts.actions30} dates={charts.dates} label="30d Avg — Actions (Paid + Processing)" />
+                  <LineChart values={charts.totalProfit30} dates={charts.dates} label="30d Avg — Total Profit (₽)" isCurrency />
+                  <LineChart values={charts.profitPerBooking30} dates={charts.dates} label="30d Avg — Profit per Booking (₽)" isCurrency />
+                </>
+              )}
+              {!charts && <div className="p-4 text-sm text-gray-500">Loading…</div>}
+            </div>
+          )}
+          {trendMode === "months" && (
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+              {charts && (
+                <>
+                  <LineChart values={charts.totalProfit30Sum} dates={charts.dates} label="30d Sum — Total Profit (₽)" isCurrency />
+                  <LineChart values={charts.actions30Sum} dates={charts.dates} label="30d Sum — Actions (Paid + Processing)" />
+                  <LineChart values={charts.profitPerBooking30} dates={charts.dates} label="30d Avg — Profit per Booking (₽)" isCurrency />
+                </>
+              )}
+              {!charts && <div className="p-4 text-sm text-gray-500">Loading…</div>}
             </div>
           )}
         </section>
+
+        {/* Always show monthly conversion table and charts */}
+        {monthlySeries && (
+          <section className="rounded-lg border">
+            <div className="overflow-x-auto">
+              <div className="p-4 font-medium">Conversion (Monthly)</div>
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Month</th>
+                    <th className="px-3 py-2 text-right">Paid + Processing Actions</th>
+                    <th className="px-3 py-2 text-right">Prev Month MAU</th>
+                    <th className="px-3 py-2 text-right">Conversion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlySeries.months.map((m, i) => {
+                    const prevMonth = String(((parseInt(m.slice(5, 7), 10) + 10) % 12) + 1).padStart(2, "0");
+                    const prevMau = mauByMonth[prevMonth] ?? 0;
+                    const actionsPP = monthlySeries.actionsPP[i];
+                    const conv = prevMau > 0 ? actionsPP / prevMau : 0;
+                    const formatInt = (n: number) => String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+                    return (
+                      <tr key={`conv2-${m}`} className="odd:bg-white even:bg-gray-50">
+                        <td className="px-3 py-2">{m}</td>
+                        <td className="px-3 py-2 text-right">{formatInt(actionsPP)}</td>
+                        <td className="px-3 py-2 text-right">{prevMau ? formatInt(prevMau) : "—"}</td>
+                        <td className="px-3 py-2 text-right">{prevMau ? `${(conv * 100).toFixed(2)}%` : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-3">
+              <LineChart values={monthlySeries.totalProfit} dates={monthlySeries.months} label="Monthly — Total Profit (₽)" isCurrency />
+              <LineChart values={monthlySeries.actionsPP} dates={monthlySeries.months} label="Monthly — Actions (Paid + Processing)" />
+              <CombinedChart months={monthlySeries.months} actions={monthlySeries.actionsPP} mau={monthlySeries.mau} conversion={monthlySeries.conversion} />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
